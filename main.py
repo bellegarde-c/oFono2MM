@@ -5,14 +5,16 @@ from dbus_next.service import (ServiceInterface,
                                method, dbus_property)
 from dbus_next.constants import PropertyAccess
 from dbus_next import DBusError, BusType
+from dbus_next import Variant
 
 import asyncio
 
 from ofono2mm import MMModemInterface, Ofono, DBus
-from ofono2mm.utils import async_locked
+from ofono2mm.utils import async_locked, save_setting, read_setting
 from ofono2mm.logging import ofono2mm_print
 
 import argparse
+import os
 
 has_bus = False
 sim_i = 0
@@ -29,6 +31,7 @@ class MMInterface(ServiceInterface):
         self.mm_modem_interfaces = []
         self.mm_modem_objects = []
         self.offline_modems = []
+        self.settings_dir = "/var/lib/ofono2mm"
         self.loop.create_task(self.check_ofono_presence())
 
     @dbus_property(access=PropertyAccess.READ)
@@ -42,7 +45,7 @@ class MMInterface(ServiceInterface):
         try:
             await self.find_ofono_modems()
         except Exception as e:
-            pass
+            ofono2mm_print(f"Failed to scan for devices: {e}", self.verbose)
 
     async def check_ofono_presence(self):
         ofono2mm_print("Checking ofono presence", self.verbose)
@@ -81,18 +84,27 @@ class MMInterface(ServiceInterface):
         self.offline_modems = []
 
         if not self.ofono_manager_interface:
+            ofono2mm_print(f"oFono manager interface is empty, skipping", self.verbose)
             return
 
         self.ofono_modem_list = False
         while not self.ofono_modem_list:
             try:
+                modems = await self.ofono_manager_interface.call_get_modems()
+
+                for modem in modems:
+                    ofono2mm_print(f"Modems available in oFono: {modem[0]}", self.verbose)
+
                 self.ofono_modem_list = [
                     x
-                    for x in await self.ofono_manager_interface.call_get_modems()
+                    for x in modems
                     if x[0].startswith("/ril_") # FIXME
                 ]
-            except DBusError:
-                pass
+
+                for modem in self.ofono_modem_list:
+                    ofono2mm_print(f"Selected modem: {modem[0]}", self.verbose)
+            except DBusError as e:
+                ofono2mm_print(f"Failed to get the current modem: {e}", self.verbose)
 
         self.i = 0
         sim_i = len(self.ofono_modem_list)
@@ -117,6 +129,8 @@ class MMInterface(ServiceInterface):
             has_bus = True
 
     def dbus_name_owner_changed(self, name, old_owner, new_owner):
+        ofono2mm_print(f"oFono name owner changed, name: {name}, old owner: {old_owner}, new owner: {new_owner}", self.verbose)
+
         if name == "org.ofono":
             if new_owner == "":
                 self.ofono_removed()
@@ -129,7 +143,7 @@ class MMInterface(ServiceInterface):
         try:
             self.loop.create_task(self.export_new_modem(path, mprops))
         except Exception as e:
-            pass
+            ofono2mm_print(f"Failed to create task for modem {path}: {e}", self.verbose)
 
     async def export_new_modem(self, path, mprops):
         ofono2mm_print(f"Processing modem {path} with properties {mprops}", self.verbose)
@@ -163,6 +177,34 @@ class MMInterface(ServiceInterface):
         except Exception as e:
             pass
 
+        if read_setting('data').strip() == 'True':
+            ofono2mm_print(f"Activating context on startup", self.verbose)
+
+            try:
+                self.loop.create_task(self.startup_activate_context(mm_modem_simple, mm_modem_interface))
+            except Exception as e:
+                ofono2mm_print(f"Failed to activate context: {e}", self.verbose)
+
+    async def startup_activate_context(self, mm_modem_simple, mm_modem):
+        ofono2mm_print("Activating context on startup", self.verbose)
+
+        while True:
+            strength = mm_modem_simple.check_signal_strength()
+
+            if strength == 0:
+                ofono2mm_print("Strength is not available, skipping", self.verbose)
+            elif strength > 0:
+                ofono2mm_print(f"Signal strength is {strength}, activating context now", self.verbose)
+
+                try:
+                    ret = await mm_modem.activate_internet_context()
+                    if ret == True:
+                        return
+                except Exception as e:
+                    ofono2mm_print(f"Failed to activate context: {e}", self.verbose)
+
+            await asyncio.sleep(2)
+
     async def simple_set_apn(self, mm_modem_simple):
         ofono2mm_print("Setting APN in Network Manager", self.verbose)
 
@@ -174,29 +216,26 @@ class MMInterface(ServiceInterface):
             await asyncio.sleep(2)
 
     def ofono_modem_removed(self, path):
-        ofono2mm_print("oFono modem removed", self.verbose)
+        ofono2mm_print("oFono modem removed at path {path}", self.verbose)
 
         for mm_object in self.mm_modem_objects:
             try:
                 if mm_object.modem_name == path:
                     self.bus.unexport(mm_object)
             except Exception as e:
-                pass
+                ofono2mm_print(f"Failed unexport modem at path {path}: {e}", self.verbose)
 
     @method()
     def SetLogging(self, level: 's'):
         ofono2mm_print(f"Set logging with level {level}", self.verbose)
-        pass
 
     @method()
     def ReportKernelEvent(self, properties: 'a{sv}'):
         ofono2mm_print(f"Report kernel events with properties {properties}", self.verbose)
-        pass
 
     @method()
     def InhibitDevice(self, uid: 's', inhibit: 'b'):
         ofono2mm_print(f"Inhibit device with uid {uid} set to {inhibit}", self.verbose)
-        pass
 
 def get_version():
     return "1.22.0"

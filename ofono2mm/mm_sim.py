@@ -88,6 +88,8 @@ class MMSimInterface(ServiceInterface):
 
         if 'org.ofono.SimManager' in self.ofono_interfaces:
             await self.ofono_interfaces['org.ofono.SimManager'].call_enter_pin('pin', pin)
+        else:
+            raise DBusError('org.freedesktop.ModemManager1.Error.Core.Unsupported', f'Cannot send PIN: SIM not currently active')
 
     @method()
     async def SendPuk(self, puk: 's', pin: 's'):
@@ -95,6 +97,8 @@ class MMSimInterface(ServiceInterface):
 
         if 'org.ofono.SimManager' in self.ofono_interfaces:
             await self.ofono_interfaces['org.ofono.SimManager'].call_reset_pin('pin', puk, pin)
+        else:
+            raise DBusError('org.freedesktop.ModemManager1.Error.Core.Unsupported', f'Cannot send PUK: SIM not currently active')
 
     @method()
     async def EnablePin(self, pin: 's', enabled: 'b'):
@@ -105,6 +109,8 @@ class MMSimInterface(ServiceInterface):
                 await self.ofono_interfaces['org.ofono.SimManager'].call_lock_pin('pin', pin)
             else:
                 await self.ofono_interfaces['org.ofono.SimManager'].call_unlock_pin('pin', pin)
+        else:
+            raise DBusError('org.freedesktop.ModemManager1.Error.Core.Unsupported', f'Cannot enable/disable PIN: SIM not currently active')
 
     @method()
     async def ChangePin(self, old_pin: 's', new_pin: 's'):
@@ -112,6 +118,8 @@ class MMSimInterface(ServiceInterface):
 
         if 'org.ofono.SimManager' in self.ofono_interfaces:
             await self.ofono_interfaces['org.ofono.SimManager'].call_change_pin('pin', old_pin, new_pin)
+        else:
+            raise DBusError('org.freedesktop.ModemManager1.Error.Core.Unsupported', f'Cannot change PIN: SIM not currently active')
 
     @method()
     async def SetPreferredNetworks(self, preferred_networks: 'a(su)'):

@@ -3,10 +3,12 @@ from dbus_next.constants import PropertyAccess
 from dbus_next import Variant
 
 from ofono2mm.logging import ofono2mm_print
+from ofono2mm.utils import save_setting, read_setting
 
 import NetworkManager
 import uuid
 import time
+import os
 import dbus.mainloop.glib
 
 class MMModemSimpleInterface(ServiceInterface):
@@ -18,6 +20,7 @@ class MMModemSimpleInterface(ServiceInterface):
         self.ofono_interfaces = ofono_interfaces
         self.ofono_interface_props = ofono_interface_props
         self.verbose = verbose
+        self.settings_dir = "/var/lib/ofono2mm"
         self.props = {
              'state': Variant('u', 7), # on runtime enabled MM_MODEM_STATE_ENABLED
              'signal-quality': Variant('(ub)', [0, True]),
@@ -135,19 +138,33 @@ class MMModemSimpleInterface(ServiceInterface):
             if self.props[prop].value != old_props[prop].value:
                 self.emit_properties_changed({prop: self.props[prop].value})
 
+    def check_signal_strength(self):
+        ofono2mm_print(f"Checking network registration", self.verbose)
+
+        try:
+            if 'org.ofono.NetworkRegistration' in self.ofono_interface_props:
+                if 'Strength' in self.ofono_interface_props['org.ofono.NetworkRegistration']:
+                    strength = self.ofono_interface_props['org.ofono.NetworkRegistration']['Strength'].value
+                    ofono2mm_print(f"Signal strength is available: {strength}", self.verbose)
+                    return strength
+                else:
+                    return 0
+            else:
+                return 0
+        except Exception as e:
+            ofono2mm_print(f"Failed to get signal strength: {e}", self.verbose)
+            return 0
+
     @method()
     async def Connect(self, properties: 'a{sv}') -> 'o':
         ofono2mm_print(f"Connecting with properties {properties}", self.verbose)
 
-        try:
-            await self.props()
-        except Exception as e:
-            pass
+        self.set_props()
 
         try:
             await self.network_manager_set_apn()
         except Exception as e:
-            pass
+            ofono2mm_print(f"Failed to set Network Manager APN: {e}", self.verbose)
 
         for b in self.mm_modem.bearers:
             if self.mm_modem.bearers[b].props['Properties'].value['apn'] == properties['apn']:
@@ -155,6 +172,9 @@ class MMModemSimpleInterface(ServiceInterface):
                                                                 properties['password'].value if 'password' in properties else '')
                 self.mm_modem.bearers[b].props['Properties'] = Variant('a{sv}', properties)
                 await self.mm_modem.bearers[b].doConnect()
+
+                ofono2mm_print("Saving context toggle state during connection of existing bearers", self.verbose)
+                save_setting('data', 'True')
                 return b
 
         try:
@@ -162,6 +182,9 @@ class MMModemSimpleInterface(ServiceInterface):
             await self.mm_modem.bearers[bearer].doConnect()
         except Exception as e:
             bearer = f'/org/freedesktop/ModemManager/Bearer/0'
+
+        ofono2mm_print("Saving context toggle state on bearer creation", self.verbose)
+        save_setting('data', 'True')
 
         return bearer
 
@@ -174,12 +197,15 @@ class MMModemSimpleInterface(ServiceInterface):
                 try:
                     await self.mm_modem.bearers[b].doDisconnect()
                 except Exception as e:
-                    pass
+                    ofono2mm_print(f"Failed to disconnect bearer {path}: {e}", self.verbose)
         if path in self.mm_modem.bearers:
             try:
                 await self.mm_modem.bearers[path].doDisconnect()
             except Exception as e:
-                pass
+                ofono2mm_print(f"Failed to disconnect bearer {path}: {e}", self.verbose)
+
+        ofono2mm_print("Saving context toggle state", self.verbose)
+        save_setting('data', 'False')
 
     @method()
     async def GetStatus(self) -> 'a{sv}':
@@ -207,7 +233,6 @@ class MMModemSimpleInterface(ServiceInterface):
         try:
             contexts = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_get_contexts()
             for ctx in contexts:
-                #print(ctx)
                 type = ctx[1].get('Type', Variant('s', '')).value
                 if type.lower() == "internet":
                     apn = ctx[1].get('AccessPointName', Variant('s', '')).value

@@ -3,7 +3,7 @@ from dbus_next.service import (ServiceInterface,
 from dbus_next.constants import PropertyAccess
 from dbus_next import Variant, DBusError, BusType
 
-from ofono2mm.utils import async_retryable
+from ofono2mm.utils import async_retryable, save_setting, read_setting
 from ofono2mm.logging import ofono2mm_print
 
 import asyncio
@@ -140,6 +140,9 @@ class MMBearerInterface(ServiceInterface):
             if ofono_props.get('RoamingAllowed', Variant('b', True).value) != "":
                 roaming_allowed = ofono_props.get('RoamingAllowed', Variant('b', True).value).value
 
+                ofono2mm_print("Saving roaming toggle state", self.verbose)
+                save_setting('roaming', str(roaming_allowed))
+
                 if roaming_allowed == True:
                     self.props['Properties'].value['roaming-allowance'] = Variant('u', 2) # roaming partner network MM_BEARER_ROAMING_ALLOWANCE_PARTNER
                 elif roaming_allowed == False:
@@ -159,7 +162,7 @@ class MMBearerInterface(ServiceInterface):
         try:
             await self.set_props()
         except Exception as e:
-            pass
+            ofono2mm_print(f"Failed to set props: {e}", self.verbose)
 
         # print("Do connect")
         ofono_ctx_interface = self.ofono_client["ofono_context"][self.ofono_ctx]['org.ofono.ConnectionContext']
@@ -201,7 +204,7 @@ class MMBearerInterface(ServiceInterface):
             await ofono_ctx_interface.call_set_property("Username", Variant('s', username))
             await ofono_ctx_interface.call_set_property("Password", Variant('s', password))
         except Exception as e:
-            pass
+            ofono2mm_print(f"Failed to set ofono authentication: {e}", self.verbose)
 
     def ofono_context_changed(self, propname, value):
         ofono2mm_print(f"oFono context changed for prop name {propname} set to value {value}", self.verbose)

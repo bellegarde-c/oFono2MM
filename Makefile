@@ -10,6 +10,7 @@ DBUS_XML = dbus.xml
 OFONO_XML_FILES = ofono.xml ofono_modem.xml ofono_operator.xml ofono_context.xml
 SYSTEMD_CONF = systemd/10-ofono2mm.conf
 POLKIT_PKLA = extra/ofono2mm-radio.pkla
+MODEM_WAIT = bin/wait-modem.sh
 
 .PHONY: all install uninstall
 
@@ -27,6 +28,8 @@ install:
 	install -m 644 $(DBUS_XML) $(LIBDIR)/ofono2mm/
 	install -m 644 $(OFONO_XML_FILES) $(LIBDIR)/ofono2mm/
 
+	install -m 755 $(MODEM_WAIT) $(BINDIR)
+
 ifeq ($(shell test -d $(SYSTEMD_DIR) && echo 1),1)
 	install -d $(SYSTEMD_DIR)/ModemManager.service.d
 	install -m 644 $(SYSTEMD_CONF) $(SYSTEMD_DIR)/ModemManager.service.d/
@@ -39,6 +42,6 @@ endif
 
 uninstall:
 	rm -rf $(LIBDIR)/ofono2mm/
-	rm -f $(BINDIR)/ofono2mm
+	rm -f $(BINDIR)/ofono2mm $(BINDIR)/wait-modem.sh
 	rm -f $(SYSDIR)/ModemManager.service.d/10-ofono2mm.conf
 	rm -f $(POLKIT_DIR)/ofono2mm-radio.pkla

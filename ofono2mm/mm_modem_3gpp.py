@@ -60,7 +60,7 @@ class MMModem3gppInterface(ServiceInterface):
 
             self.props['OperatorCode'] = Variant('s', f'{MCC}{MNC}')
             if 'Status' in self.ofono_interface_props['org.ofono.NetworkRegistration']:
-                if self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "unregisered":
+                if self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "unregistered":
                     self.props['RegistrationState'] = Variant('u', 0) # idle MM_MODEM_3GPP_REGISTRATION_STATE_IDLE
                     self.props['PacketServiceState'] = Variant('u', 1) # detached MM_MODEM_3GPP_PACKET_SERVICE_STATE_DETACHED
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "registered":

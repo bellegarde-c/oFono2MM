@@ -103,7 +103,7 @@ class MMInterface(ServiceInterface):
                 self.ofono_modem_list = [
                     x
                     for x in modems
-                    if x[0].startswith("/ril_") # FIXME
+                    if x[0].startswith("/ril_") or x[0].startswith("/phonesim") # FIXME
                 ]
 
                 if not self.ofono_modem_list:

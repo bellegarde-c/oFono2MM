@@ -250,3 +250,14 @@ class ModemManager3gppRegistrationState:
     HOME_CSFB_NOT_PREFERRED    = 9
     ROAMING_CSFB_NOT_PREFERRED = 10
     ATTACHED_RLOS              = 11
+
+class ModemManager3gppFacility:
+    NONE          = 0
+    SIM           = 1 << 0
+    FIXED_DIALING = 1 << 1
+    PH_SIM        = 1 << 2
+    PH_FSIM       = 1 << 3
+    NET_PERS      = 1 << 4
+    NET_SUB_PERS  = 1 << 5
+    PROVIDER_PERS = 1 << 6
+    CORP_PERS     = 1 << 7

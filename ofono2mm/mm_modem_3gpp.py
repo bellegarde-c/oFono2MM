@@ -3,7 +3,7 @@ from dbus_next.service import (ServiceInterface,
 from dbus_next.constants import PropertyAccess
 from dbus_next import Variant, DBusError
 
-from ofono2mm.mm_types import ModemManager3gppRegistrationState
+from ofono2mm.mm_types import ModemManager3gppRegistrationState, ModemManager3gppFacility
 
 class MMModem3gppInterface(ServiceInterface):
     def __init__(self, index, bus, ofono_client, modem_name, ofono_modem, ofono_props, ofono_interfaces, ofono_interface_props):
@@ -22,7 +22,7 @@ class MMModem3gppInterface(ServiceInterface):
             'RegistrationState': Variant('u', ModemManager3gppRegistrationState.IDLE),
             'OperatorCode': Variant('s', ''),
             'OperatorName': Variant('s', ''),
-            'EnabledFacilityLocks': Variant('u', 0), # on runtime none MM_MODEM_3GPP_FACILITY_NONE
+            'EnabledFacilityLocks': Variant('u', ModemManager3gppFacility.NONE),
             'SubscriptionState': Variant('u', 0), # on runtime unknown MM_MODEM_3GPP_SUBSCRIPTION_STATE_UNKNOWN
             'EpsUeModeOperation': Variant('u', 0), # on runtime unknown MM_MODEM_3GPP_PACKET_SERVICE_STATE_UNKNOWN
             'Pco': Variant('a(ubay)', []),
@@ -63,7 +63,7 @@ class MMModem3gppInterface(ServiceInterface):
             self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.UNKNOWN)
 
         self.props['Imei'] = Variant('s', self.ofono_props['Serial'].value if 'Serial' in self.ofono_props else '')
-        self.props['EnabledFacilityLocks'] = Variant('u', 0) # none MM_MODEM_3GPP_FACILITY_NONE
+        self.props['EnabledFacilityLocks'] = Variant('u', ModemManager3gppFacility.NONE)
 
         changed_props = {}
         for prop in self.props:

@@ -261,3 +261,9 @@ class ModemManager3gppFacility:
     NET_SUB_PERS  = 1 << 5
     PROVIDER_PERS = 1 << 6
     CORP_PERS     = 1 << 7
+
+class ModemManager3gppUssdSessionState:
+    UNKNOWN       = 0
+    IDLE          = 1
+    ACTIVE        = 2
+    USER_RESPONSE = 3

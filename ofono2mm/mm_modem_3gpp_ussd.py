@@ -2,6 +2,8 @@ from dbus_next.service import ServiceInterface, method, dbus_property, signal
 from dbus_next.constants import PropertyAccess
 from dbus_next import Variant
 
+from ofono2mm.mm_types import ModemManager3gppUssdSessionState
+
 class MMModem3gppUssdInterface(ServiceInterface):
     def __init__(self, index, bus, ofono_client, modem_name, ofono_modem, ofono_props, ofono_interfaces, ofono_interface_props):
         super().__init__('org.freedesktop.ModemManager1.Modem.Modem3gpp.Ussd')
@@ -15,7 +17,7 @@ class MMModem3gppUssdInterface(ServiceInterface):
         self.ofono_interfaces = ofono_interfaces
         self.ofono_interface_props = ofono_interface_props
         self.props = {
-            'State': Variant('u', 0), # on runtime unknown MM_MODEM_3GPP_USSD_SESSION_STATE_UNKNOWN
+            'State': Variant('u', ModemManager3gppUssdSessionState.UNKNOWN),
             'NetworkNotification': Variant('s', ''),
             'NetworkRequest': Variant('s', ''),
         }
@@ -44,18 +46,18 @@ class MMModem3gppUssdInterface(ServiceInterface):
             result_str = result['State'].value
 
             if result_str == 'idle':
-                self.props['State'] = Variant('u', 1) # idle MM_MODEM_3GPP_USSD_SESSION_STATE_IDLE
+                self.props['State'] = Variant('u', ModemManager3gppUssdSessionState.IDLE)
             elif result_str == "active":
-                self.props['State'] = Variant('u', 2) # active MM_MODEM_3GPP_USSD_SESSION_STATE_ACTIVE
+                self.props['State'] = Variant('u', ModemManager3gppUssdSessionState.ACTIVE)
             elif result_str == "user-response":
-                self.props['State'] = Variant('u', 3) # user response MM_MODEM_3GPP_USSD_SESSION_STATE_USER_RESPONSE
+                self.props['State'] = Variant('u', ModemManager3gppUssdSessionState.USER_RESPONSE)
             else:
-                self.props['State'] = Variant('u', 0) # unknown MM_MODEM_3GPP_USSD_SESSION_STATE_UNKNOWN
+                self.props['State'] = Variant('u', ModemManager3gppUssdSessionState.UNKNOWN)
 
             self.ofono_interfaces['org.ofono.SupplementaryServices'].on_notification_received(self.save_notification_received)
             self.ofono_interfaces['org.ofono.SupplementaryServices'].on_request_received(self.save_request_received)
         except Exception as e:
-            self.props['State'] = Variant('u', 0) # unknown MM_MODEM_3GPP_USSD_SESSION_STATE_UNKNOWN
+            self.props['State'] = Variant('u', ModemManager3gppUssdSessionState.UNKNOWN)
 
         return self.props['State'].value
 

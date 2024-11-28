@@ -267,3 +267,13 @@ class ModemManager3gppUssdSessionState:
     IDLE          = 1
     ACTIVE        = 2
     USER_RESPONSE = 3
+
+class ModemManagerCallState:
+    UNKNOWN       = 0
+    DIALING       = 1
+    RINGING_OUT   = 2
+    RINGING_IN    = 3
+    ACTIVE        = 4
+    HELD          = 5
+    WAITING       = 6
+    TERMINATED    = 7

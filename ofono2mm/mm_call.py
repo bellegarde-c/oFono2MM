@@ -2,6 +2,8 @@ from dbus_next.service import ServiceInterface, method, dbus_property, signal
 from dbus_next.constants import PropertyAccess
 from dbus_next import Variant
 
+from ofono2mm.mm_types import ModemManagerCallState
+
 class MMCallInterface(ServiceInterface):
     def __init__(self, index, bus, ofono_client, modem_name, ofono_modem, ofono_props, ofono_interfaces, ofono_interface_props):
         super().__init__('org.freedesktop.ModemManager1.Call')
@@ -16,7 +18,7 @@ class MMCallInterface(ServiceInterface):
         self.ofono_interface_props = ofono_interface_props
         self.voicecall = '/'
         self.props = {
-            'State': Variant('u', 0), # on runtime unknown MM_CALL_STATE_UNKNOWN
+            'State': Variant('u', ModemManagerCallState.UNKNOWN),
             'StateReason': Variant('u', 0), # on runtime unknown MM_CALL_STATE_REASON_UNKNOWN
             'Direction': Variant('u', 0), # on runtime unknown MM_CALL_DIRECTION_UNKNOWN
             'Number': Variant('s', ''),
@@ -31,14 +33,14 @@ class MMCallInterface(ServiceInterface):
 
     @method()
     def Start(self):
-        self.props['State'] = Variant('u', 4) # active MM_CALL_STATE_ACTIVE
+        self.props['State'] = Variant('u', ModemManagerCallState.ACTIVE)
         self.props['StateReason'] = Variant('u', 1) # accepted MM_CALL_STATE_REASON_OUTGOING_STARTED
 
     @method()
     async def Accept(self):
         ofono_interface = self.ofono_client["ofono_modem"][self.voicecall]['org.ofono.VoiceCall']
         await ofono_interface.call_answer()
-        self.props['State'] = Variant('u', 4) # active MM_CALL_STATE_ACTIVE
+        self.props['State'] = Variant('u', ModemManagerCallState.ACTIVE)
         self.props['StateReason'] = Variant('u', 3) # accepted MM_CALL_STATE_REASON_ACCEPTED
 
     @method()
@@ -62,7 +64,7 @@ class MMCallInterface(ServiceInterface):
         # ofono_interface = self.ofono_client["ofono_modem"][self.voicecall]['org.ofono.VoiceCall']
         # await ofono_interface.call_hangup()
         await self.ofono_interfaces['org.ofono.VoiceCallManager'].call_hangup_all()
-        self.props['State'] = Variant('u', 7) # terminated MM_CALL_STATE_TERMINATED
+        self.props['State'] = Variant('u', ModemManagerCallState.TERMINATED)
         self.props['StateReason'] = Variant('u', 4) # terminated MM_CALL_STATE_REASON_TERMINATED
 
     @method()

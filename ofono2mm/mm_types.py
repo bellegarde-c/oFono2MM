@@ -231,3 +231,8 @@ class ModemManagerPortType:
     MBIM    = 7
     AUDIO   = 8
     IGNORED = 9
+
+class ModemManagerSimRemovability:
+    UNKNOWN       = 0
+    REMOVABLE     = 1
+    NOT_REMOVABLE = 2

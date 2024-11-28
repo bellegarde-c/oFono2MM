@@ -3,6 +3,8 @@ from dbus_next.service import (ServiceInterface,
 from dbus_next.constants import PropertyAccess
 from dbus_next import Variant, DBusError
 
+from ofono2mm.mm_types import ModemManagerSimRemovability
+
 class MMSimInterface(ServiceInterface):
     def __init__(self, index, bus, ofono_client, modem_name, ofono_modem, ofono_props, ofono_interfaces, ofono_interface_props):
         super().__init__('org.freedesktop.ModemManager1.Sim')
@@ -28,7 +30,7 @@ class MMSimInterface(ServiceInterface):
             'Gid2': Variant('ay', bytes()),
             'SimType': Variant('u', 1), # hardcoded value physical MM_SIM_TYPE_PHYSICAL
             'EsimStatus': Variant('u', 0), # hardcoded value unknown MM_SIM_ESIM_STATUS_UNKNOWN
-            'Removability': Variant('u', 1) # hardcoded value MM_SIM_REMOVABILITY_REMOVABLE
+            'Removability': Variant('u', ModemManagerSimRemovability.REMOVABLE)
         }
 
     def set_props(self):

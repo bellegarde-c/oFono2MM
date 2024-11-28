@@ -236,3 +236,17 @@ class ModemManagerSimRemovability:
     UNKNOWN       = 0
     REMOVABLE     = 1
     NOT_REMOVABLE = 2
+
+class ModemManager3gppRegistrationState:
+    IDLE                       = 0
+    HOME                       = 1
+    SEARCHING                  = 2
+    DENIED                     = 3
+    UNKNOWN                    = 4
+    ROAMING                    = 5
+    HOME_SMS_ONLY              = 6
+    ROAMING_SMS_ONLY           = 7
+    EMERGENCY_ONLY             = 8
+    HOME_CSFB_NOT_PREFERRED    = 9
+    ROAMING_CSFB_NOT_PREFERRED = 10
+    ATTACHED_RLOS              = 11

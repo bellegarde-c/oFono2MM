@@ -2,7 +2,7 @@ from dbus_next.service import (ServiceInterface, method, dbus_property, signal)
 from dbus_next.constants import PropertyAccess
 from dbus_next import Variant
 
-from ofono2mm.mm_types import ModemManagerState, ModemManagerAccessTechnology
+from ofono2mm.mm_types import ModemManagerState, ModemManagerAccessTechnology, ModemManager3gppRegistrationState
 
 class MMModemSimpleInterface(ServiceInterface):
     def __init__(self, mm_modem, ofono_interfaces, ofono_interface_props):
@@ -15,7 +15,7 @@ class MMModemSimpleInterface(ServiceInterface):
              'signal-quality': Variant('(ub)', [0, True]),
              'current-bands': Variant('au', []),
              'access-technologies': Variant('u', ModemManagerAccessTechnology.UNKNOWN),
-             'm3gpp-registration-state': Variant('u', 0), # on runtime idle MM_MODEM_3GPP_REGISTRATION_STATE_IDLE
+             'm3gpp-registration-state': Variant('u', ModemManager3gppRegistrationState.IDLE),
              'm3gpp-operator-code': Variant('s', ''),
              'm3gpp-operator-name': Variant('s', ''),
              'cdma-cdma1x-registration-state': Variant('u', 0),
@@ -54,19 +54,19 @@ class MMModemSimpleInterface(ServiceInterface):
 
             if 'Status' in self.ofono_interface_props['org.ofono.NetworkRegistration']:
                 if self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "unregistered":
-                    self.props['m3gpp-registration-state'] = Variant('u', 0) # idle MM_MODEM_3GPP_REGISTRATION_STATE_IDLE
+                    self.props['m3gpp-registration-state'] = Variant('u', ModemManager3gppRegistrationState.IDLE)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "registered":
-                    self.props['m3gpp-registration-state'] = Variant('u', 1) # home MM_MODEM_3GPP_REGISTRATION_STATE_HOME
+                    self.props['m3gpp-registration-state'] = Variant('u', ModemManager3gppRegistrationState.HOME)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "searching":
-                    self.props['m3gpp-registration-state'] = Variant('u', 2) # searching MM_MODEM_3GPP_REGISTRATION_STATE_SEARCHING
+                    self.props['m3gpp-registration-state'] = Variant('u', ModemManager3gppRegistrationState.SEARCHING)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "denied":
-                    self.props['m3gpp-registration-state'] = Variant('u', 3) # denied MM_MODEM_3GPP_REGISTRATION_STATE_DENIED
+                    self.props['m3gpp-registration-state'] = Variant('u', ModemManager3gppRegistrationState.DENIED)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "unknown":
-                    self.props['m3gpp-registration-state'] = Variant('u', 4) # unknown MM_MODEM_3GPP_REGISTRATION_STATE_UNKNOWN
+                    self.props['m3gpp-registration-state'] = Variant('u', ModemManager3gppRegistrationState.UNKNOWN)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "roaming":
-                    self.props['m3gpp-registration-state'] = Variant('u', 5) # MM_MODEM_3GPP_REGISTRATION_STATE_ROAMING
+                    self.props['m3gpp-registration-state'] = Variant('u', ModemManager3gppRegistrationState.ROAMING)
             else:
-                self.props['m3gpp-registration-state'] = Variant('u', 4) # unknown MM_MODEM_3GPP_REGISTRATION_STATE_UNKNOWN
+                self.props['m3gpp-registration-state'] = Variant('u', ModemManager3gppRegistrationState.UNKNOWN)
         else:
             self.props['m3gpp-operator-name'] = Variant('s', '')
             self.props['m3gpp-operator-code'] = Variant('s', '')

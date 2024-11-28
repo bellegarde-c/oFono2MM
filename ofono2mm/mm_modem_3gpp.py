@@ -3,6 +3,8 @@ from dbus_next.service import (ServiceInterface,
 from dbus_next.constants import PropertyAccess
 from dbus_next import Variant, DBusError
 
+from ofono2mm.mm_types import ModemManager3gppRegistrationState
+
 class MMModem3gppInterface(ServiceInterface):
     def __init__(self, index, bus, ofono_client, modem_name, ofono_modem, ofono_props, ofono_interfaces, ofono_interface_props):
         super().__init__('org.freedesktop.ModemManager1.Modem.Modem3gpp')
@@ -17,7 +19,7 @@ class MMModem3gppInterface(ServiceInterface):
         self.ofono_interface_props = ofono_interface_props
         self.props = {
             'Imei': Variant('s', ''),
-            'RegistrationState': Variant('u', 0), # on runtime idle MM_MODEM_3GPP_REGISTRATION_STATE_IDLE
+            'RegistrationState': Variant('u', ModemManager3gppRegistrationState.IDLE),
             'OperatorCode': Variant('s', ''),
             'OperatorName': Variant('s', ''),
             'EnabledFacilityLocks': Variant('u', 0), # on runtime none MM_MODEM_3GPP_FACILITY_NONE
@@ -42,23 +44,23 @@ class MMModem3gppInterface(ServiceInterface):
             self.props['OperatorCode'] = Variant('s', f"{MCC}{MNC}" if MCC != '' else '')
             if 'Status' in self.ofono_interface_props['org.ofono.NetworkRegistration']:
                 if self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "unregistered":
-                    self.props['RegistrationState'] = Variant('u', 0) # idle MM_MODEM_3GPP_REGISTRATION_STATE_IDLE
+                    self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.IDLE)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "registered":
-                    self.props['RegistrationState'] = Variant('u', 1) # home MM_MODEM_3GPP_REGISTRATION_STATE_HOME
+                    self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.HOME)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "searching":
-                    self.props['RegistrationState'] = Variant('u', 2) # searching MM_MODEM_3GPP_REGISTRATION_STATE_SEARCHING
+                    self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.SEARCHING)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "denied":
-                    self.props['RegistrationState'] = Variant('u', 3) # denied MM_MODEM_3GPP_REGISTRATION_STATE_DENIED
+                    self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.DENIED)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "unknown":
-                    self.props['RegistrationState'] = Variant('u', 4) # unknown MM_MODEM_3GPP_REGISTRATION_STATE_UNKNOWN
+                    self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.UNKNOWN)
                 elif self.ofono_interface_props['org.ofono.NetworkRegistration']['Status'].value == "roaming":
-                    self.props['RegistrationState'] = Variant('u', 5) # MM_MODEM_3GPP_REGISTRATION_STATE_ROAMING
+                    self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.ROAMING)
             else:
-                self.props['RegistrationState'] = Variant('u', 4) # unknown MM_MODEM_3GPP_REGISTRATION_STATE_UNKNOWN
+                self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.UNKNOWN)
         else:
             self.props['OperatorName'] = Variant('s', '')
             self.props['OperatorCode'] = Variant('s', '')
-            self.props['RegistrationState'] = Variant('u', 4) # unknown MM_MODEM_3GPP_REGISTRATION_STATE_UNKNOWN
+            self.props['RegistrationState'] = Variant('u', ModemManager3gppRegistrationState.UNKNOWN)
 
         self.props['Imei'] = Variant('s', self.ofono_props['Serial'].value if 'Serial' in self.ofono_props else '')
         self.props['EnabledFacilityLocks'] = Variant('u', 0) # none MM_MODEM_3GPP_FACILITY_NONE

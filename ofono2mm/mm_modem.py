@@ -19,19 +19,20 @@ from ofono2mm.mm_sim import MMSimInterface
 from ofono2mm.mm_bearer import MMBearerInterface
 from ofono2mm.mm_modem_voice import MMModemVoiceInterface
 from ofono2mm.mm_types import ModemManagerState,\
-					  	  	  ModemManagerStateFailedReason,\
-						  	  ModemManagerLock,\
-							  ModemManagerAccessTechnology,\
-							  ModemManagerCellType,\
-							  ModemManagerMode,\
-							  ModemManagerCapability,\
-							  ModemManagerPortType,\
-							  OFONO_TECHNOLOGIES,\
-							  OFONO_CELL_TYPES,\
-							  OFONO_RETRIES_LOCK,\
-							  OFONO_MODES,\
-							  OFONO_CAPS,\
-							  MM_MODES
+                              ModemManagerStateFailedReason,\
+                              ModemManagerLock,\
+                              ModemManagerAccessTechnology,\
+                              ModemManagerCellType,\
+                              ModemManagerMode,\
+                              ModemManagerCapability,\
+                              ModemManagerPortType,\
+                              ModemManagerPowerState,\
+                              OFONO_TECHNOLOGIES,\
+                              OFONO_CELL_TYPES,\
+                              OFONO_RETRIES_LOCK,\
+                              OFONO_MODES,\
+                              OFONO_CAPS,\
+                              MM_MODES
 from ofono2mm.logger import Logger
 
 import asyncio
@@ -88,7 +89,7 @@ class MMModemInterface(ServiceInterface):
             'AccessTechnologies': Variant('u', ModemManagerAccessTechnology.UNKNOWN),
             'SignalQuality': Variant('(ub)', [0, False]),
             'OwnNumbers': Variant('as', []),
-            'PowerState': Variant('u', 3), # on runtime power on MM_MODEM_POWER_STATE_ON
+            'PowerState': Variant('u', ModemManagerPowerState.ON),
             'SupportedModes': Variant('a(uu)', [[ModemManagerMode.NONE, ModemManagerMode.NONE]]),
             'CurrentModes': Variant('(uu)', [ModemManagerMode.NONE, ModemManagerMode.NONE]),
             'SupportedBands': Variant('au', []),
@@ -349,13 +350,13 @@ class MMModemInterface(ServiceInterface):
         #############
         if not self.ofono_props['Powered'].value or 'org.ofono.SimManager' not in self.ofono_interface_props:
             self.props['State'] = Variant('i', ModemManagerState.DISABLED)
-            self.props['PowerState'] = Variant('i', 1) # power is off MM_MODEM_POWER_STATE_OFF
+            self.props['PowerState'] = Variant('i', ModemManagerPowerState.OFF)
             return
 
         #############
         # MODEM ON  #
         #############
-        self.props['PowerState'] = Variant('i', 3) # power is on MM_MODEM_POWER_STATE_ON
+        self.props['PowerState'] = Variant('i', ModemManagerPowerState.ON)
 
         if 'Present' not in self.ofono_interface_props['org.ofono.SimManager'] or \
                 not self.ofono_interface_props['org.ofono.SimManager']['Present'].value:

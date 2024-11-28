@@ -277,3 +277,9 @@ class ModemManagerCallState:
     HELD          = 5
     WAITING       = 6
     TERMINATED    = 7
+
+class ModemManagerPowerState:
+    UNKNOWN = 0,
+    OFF     = 1,
+    LOW     = 2,
+    ON      = 3

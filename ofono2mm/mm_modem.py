@@ -236,6 +236,8 @@ class MMModemInterface(ServiceInterface):
         old_bearer_list = self.props['Bearers'].value
         for ctx in contexts:
             if ctx[1]['Type'].value == "internet":
+                if self.get_bearer_path_for_apn(ctx[1]['AccessPointName']) is not None:
+                    continue
                 mm_bearer_interface = MMBearerInterface(self.index, self.bus, self.ofono_client, self.modem_name, self.ofono_modem, self.ofono_props, self.ofono_interfaces, self.ofono_interface_props, self)
 
                 ip_method = 0
@@ -529,6 +531,41 @@ class MMModemInterface(ServiceInterface):
 
         self.emit_properties_changed(changed_props)
 
+    async def get_internet_context(self):
+        connection_manager_tries = 0
+        # Prevents initial modem connection to fail by waiting for ofono
+        while 'org.ofono.ConnectionManager' not in self.ofono_interfaces and connection_manager_tries < 10:
+            await asyncio.sleep(1)
+            connection_manager_tries += 1
+
+        if 'org.ofono.ConnectionManager' not in self.ofono_interfaces:
+            return None, None
+
+        contexts = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_get_contexts()
+
+        for context in contexts:
+            name = context[1].get('Type', Variant('s', '')).value
+            access_point_name = context[1].get('AccessPointName', Variant('s', '')).value
+            if name.lower() == "internet":
+                if access_point_name:
+                     return (context[0], access_point_name)
+        return (None, None)
+
+    async def update_bearer(self, bearer_interface, properties):
+        bearer_interface.props['Properties'] = Variant('a{sv}', properties)
+        ofono_ctx_interface = self.ofono_client["ofono_context"][bearer_interface.ofono_ctx]['org.ofono.ConnectionContext']
+        if 'apn' in properties:
+            await ofono_ctx_interface.call_set_property("Name", properties['apn'])
+            await ofono_ctx_interface.call_set_property("AccessPointName", properties['apn'])
+        await bearer_interface.add_auth_ofono(properties['user'].value if 'user' in properties else '',
+                                              properties['password'].value if 'password' in properties else '')
+
+    def get_bearer_path_for_apn(self, apn):
+        for b in self.bearers:
+            if self.bearers[b].props['Properties'].value['apn'] == apn:
+                return b
+        return None
+
     @method()
     async def Enable(self, enable: 'b'):
         if self.props['State'].value == -1:
@@ -575,44 +612,30 @@ class MMModemInterface(ServiceInterface):
             "Properties": Variant('a{sv}', properties)
         })
 
-        # users would usually have to do
-        # set-context-property 0 AccessPointName example.apn && activate-context 1
-        # to activate the correct context for ofono2mm to use, lets do it on bearer creation to not need ofono scripts
-        contexts = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_get_contexts()
-        self.context_names = []
-        ctx_idx = 0
-        chosen_apn = None
-        chosen_ctx_path = None
-        for ctx in contexts:
-            name = ctx[1].get('Type', Variant('s', '')).value
-            access_point_name = ctx[1].get('AccessPointName', Variant('s', '')).value
-            if name.lower() == "internet":
-                ctx_idx += 1
-                if access_point_name:
-                    self.context_names.append(access_point_name)
-                    chosen_apn = access_point_name
-                    chosen_ctx_path = ctx[0]
+        try:
+            (context_path, access_point_name) = await self.get_internet_context()
+            if context_path is None:
+                context_path = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_add_context("internet")
 
-                    # print(chosen_ctx_path)
+            mm_bearer_interface.ofono_ctx = context_path
+            ofono_ctx_interface = self.ofono_client["ofono_context"][context_path]['org.ofono.ConnectionContext']
 
-            if chosen_ctx_path:
-                # print("set apn")
-                chosen_ctx_interface = self.ofono_client["ofono_context"][chosen_ctx_path]['org.ofono.ConnectionContext']
-                await chosen_ctx_interface.call_set_property("Active", Variant('b', False))
-                await chosen_ctx_interface.call_set_property("AccessPointName", Variant('s', chosen_apn))
-                await chosen_ctx_interface.call_set_property("Protocol", Variant('s', 'ip'))
-                await chosen_ctx_interface.call_set_property("Active", Variant('b', True))
+            if access_point_name is not None:
+                await ofono_ctx_interface.call_set_property("Active", Variant('b', False))
+            else:
+                await ofono_ctx_interface.call_set_property("Protocol", Variant('s', 'ip'))
 
-        ofono_ctx = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_add_context("internet")
-        ofono_ctx_interface = self.ofono_client["ofono_context"][ofono_ctx]['org.ofono.ConnectionContext']
-        if 'apn' in properties:
-            await ofono_ctx_interface.call_set_property("AccessPointName", properties['apn'])
+            await self.update_bearer(mm_bearer_interface, properties)
 
-        await mm_bearer_interface.add_auth_ofono(properties['username'].value if 'username' in properties else '',
-                                                        properties['password'].value if 'password' in properties else '')
+            try:
+                if access_point_name is not None:
+                    await ofono_ctx_interface.call_set_property("Active", Variant('b', True))
+            except:
+                pass # This may fail: No GPRS, busy, ...
+        except Exception as e:
+            Logger.error("Can't create new Bearer: %s", e)
+            return '/org/freedesktop/ModemManager/Bearer/0'
 
-        await ofono_ctx_interface.call_set_property("Protocol", Variant('s', 'ip'))
-        mm_bearer_interface.ofono_ctx = ofono_ctx
         ofono_ctx_interface.on_property_changed(self.ofono_context_changed)
         bearer_path = f'/org/freedesktop/ModemManager/Bearer/{bearer_i}'
         self.bus.export(bearer_path, mm_bearer_interface)

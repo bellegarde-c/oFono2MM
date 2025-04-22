@@ -3,6 +3,7 @@ from dbus_next.constants import PropertyAccess
 from dbus_next import Variant
 
 from ofono2mm.mm_types import ModemManagerState, ModemManagerAccessTechnology
+from ofono2mm.logger import Logger
 
 class MMModemSimpleInterface(ServiceInterface):
     def __init__(self, mm_modem, ofono_interfaces, ofono_interface_props):
@@ -98,21 +99,18 @@ class MMModemSimpleInterface(ServiceInterface):
         except Exception as e:
             pass
 
-        for b in self.mm_modem.bearers:
-            if self.mm_modem.bearers[b].props['Properties'].value['apn'] == properties['apn']:
-                await self.mm_modem.bearers[b].add_auth_ofono(properties['username'].value if 'username' in properties else '',
-                                                                properties['password'].value if 'password' in properties else '')
-                self.mm_modem.bearers[b].props['Properties'] = Variant('a{sv}', properties)
-                await self.mm_modem.bearers[b].doConnect()
-                return b
-
         try:
-            bearer = await self.mm_modem.doCreateBearer(properties)
-            await self.mm_modem.bearers[bearer].doConnect()
+            path = self.mm_modem.get_bearer_path_for_apn(properties['apn'])
+            if path is None:
+                path = await self.mm_modem.doCreateBearer(properties)
+            else:
+                await self.mm_modem.update_bearer(self.mm_modem.bearers[path], properties)
+            await self.mm_modem.bearers[path].doConnect()
         except Exception as e:
-            bearer = f'/org/freedesktop/ModemManager/Bearer/0'
+            Logger.error("Error while connecting modem: %s", e)
+            return '/org/freedesktop/ModemManager/Bearer/0'
 
-        return bearer
+        return path
 
     @method()
     async def Disconnect(self, path: 'o'):

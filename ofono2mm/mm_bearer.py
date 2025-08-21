@@ -13,7 +13,6 @@ from time import time
 class MMBearerInterface(ServiceInterface):
     def __init__(self, index, bus, ofono_client, modem_name, ofono_modem, ofono_props, ofono_interfaces, ofono_interface_props, mm_modem):
         super().__init__('org.freedesktop.ModemManager1.Bearer')
-        Logger.info(f"Creating new bearer interface for {index}")
         self.index = index
         self.bus = bus
         self.ofono_client = ofono_client

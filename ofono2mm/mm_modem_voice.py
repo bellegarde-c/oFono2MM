@@ -89,7 +89,6 @@ class MMModemVoiceInterface(ServiceInterface):
 
         if 'org.ofono.ConnectionManager' in self.ofono_interfaces:
             contexts = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_get_contexts()
-            self.context_names = []
             ctx_idx = 0
             chosen_apn = None
             chosen_ctx_path = None
@@ -99,7 +98,6 @@ class MMModemVoiceInterface(ServiceInterface):
                 if name.lower() == "internet":
                     ctx_idx += 1
                     if access_point_name:
-                        self.context_names.append(access_point_name)
                         chosen_apn = access_point_name
                         chosen_ctx_path = ctx[0]
 

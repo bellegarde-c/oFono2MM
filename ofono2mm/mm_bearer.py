@@ -103,7 +103,6 @@ class MMBearerInterface(ServiceInterface):
         old_props = self.props.copy()
         if 'org.ofono.ConnectionManager' in self.ofono_interface_props:
             contexts = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_get_contexts()
-            self.context_names = []
             ctx_idx = 0
             chosen_apn = None
             chosen_ctx_path = None
@@ -116,7 +115,6 @@ class MMBearerInterface(ServiceInterface):
                 if name.lower() == "internet":
                     ctx_idx += 1
                     if access_point_name:
-                        self.context_names.append(access_point_name)
                         chosen_apn = access_point_name
                         chosen_auth_method = auth_method
                         chosen_username = username

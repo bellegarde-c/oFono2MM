@@ -373,6 +373,7 @@ class MMModemInterface(ServiceInterface):
         for bearer in self.bearers.values():
             if bearer.Connected:
                 self.props['State'] = Variant('i', ModemManagerState.CONNECTED)
+                self.loop.create_task(self.enable_ims())
                 return
 
         ####################
@@ -484,6 +485,18 @@ class MMModemInterface(ServiceInterface):
                 changed_props.update({ prop: self.props[prop].value })
 
         self.emit_properties_changed(changed_props)
+
+    async def enable_ims(self):
+        if 'org.ofono.ConnectionManager' not in self.ofono_interfaces:
+            return
+
+        contexts = await self.ofono_interfaces['org.ofono.ConnectionManager'].call_get_contexts()
+
+        for context in contexts:
+            name = context[1].get('Type', Variant('s', '')).value
+            if name.lower() == "ims":
+                ofono_ctx_interface = self.ofono_client['ofono_context'][context[0]]['org.ofono.ConnectionContext']
+                await ofono_ctx_interface.call_set_property("Active", Variant('b', True))
 
     async def get_internet_context(self):
         if 'org.ofono.ConnectionManager' not in self.ofono_interfaces:
